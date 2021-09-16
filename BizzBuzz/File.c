@@ -12,6 +12,7 @@ static off_t file_size (int fd);
 bool f_ctor (File *file, const char *path, int acces)
 {
     assert (file);
+    assert (path)
 
     file->handle = open (path, acces);
     if (file->handle == -1) 
@@ -103,7 +104,7 @@ bool f_write_str (File *file, const char *str)
     const size_t len = strlen (str);
     bool no_error = true;
     for (int i = 0; i < len; ++i)
-        no_error |= f_putchar (file, str[i]);
+        no_error &= f_putchar (file, str[i]);
 
     return no_error; 
 }
