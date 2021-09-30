@@ -9,11 +9,15 @@
 
 static off_t file_size (int fd);
 
+__attribute__((unused))
 bool f_ctor (File *file, const char *path, int acces)
 {
     assert (file);
 
-    file->handle = open (path, acces);
+    if (acces & O_CREAT)
+        file->handle = open (path, acces, 0777);
+    else
+        file->handle = open (path, acces);
     if (file->handle == -1) 
     {
         file->current_position = -1;
@@ -26,6 +30,7 @@ bool f_ctor (File *file, const char *path, int acces)
     return true;
 }
 
+__attribute__((unused))
 void f_dtor (File *file)
 {
     f_verify (file);
@@ -36,6 +41,7 @@ void f_dtor (File *file)
     file->eof = false;
 }
 
+__attribute__((unused))
 char f_getchar (File *file)
 {
     f_verify (file);   
@@ -58,6 +64,7 @@ char f_getchar (File *file)
     return ch;
 }
 
+__attribute__((unused))
 char f_peek (File *file)
 {
     f_verify (file);
@@ -69,6 +76,7 @@ char f_peek (File *file)
     return ch;
 }
 
+__attribute__((unused))
 bool f_move (File *file, off_t offset)
 {
     f_verify (file);
@@ -83,6 +91,7 @@ bool f_move (File *file, off_t offset)
     return true;
 }
 
+__attribute__((unused))
 bool f_putchar (File *file, char ch)
 {
     f_verify (file);
@@ -94,6 +103,7 @@ bool f_putchar (File *file, char ch)
     return true;
 }
 
+__attribute__((unused))
 bool f_write_str (File *file, const char *str)
 {
     f_verify (file);
@@ -108,16 +118,15 @@ bool f_write_str (File *file, const char *str)
     return no_error; 
 }
 
+__attribute__((unused))
 void f_verify (File *file)
 {
     assert (file != NULL);
     assert (file->current_position >= 0);
     assert (file->handle != -1);
-    assert (file->access == O_RDONLY ||
-            file->access == O_WRONLY ||
-            file->access == O_RDWR);
 } 
 
+__attribute__((unused))
 extern bool f_eof (File *file)
 {
     f_verify (file);
@@ -125,6 +134,7 @@ extern bool f_eof (File *file)
     return file->eof;
 }
 
+__attribute__((unused))
 static off_t file_size (int fd)
 {
     assert (fd != -1);

@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <sys/types.h>
 
-typedef struct
+typedef struct 
 {
     int handle;
     off_t current_position;
@@ -22,4 +22,4 @@ extern void f_verify (File *file);
 extern void f_dtor (File *file);
 extern bool f_eof (File *file);
 
-#endif FILE_H_INCLUDED
+#endif 
