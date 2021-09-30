@@ -13,6 +13,7 @@ __attribute__((unused))
 bool f_ctor (File *file, const char *path, int acces)
 {
     assert (file);
+    assert (path);
 
     if (acces & O_CREAT)
         file->handle = open (path, acces, 0777);
@@ -113,7 +114,7 @@ bool f_write_str (File *file, const char *str)
     const size_t len = strlen (str);
     bool no_error = true;
     for (int i = 0; i < len; ++i)
-        no_error |= f_putchar (file, str[i]);
+        no_error &= f_putchar (file, str[i]);
 
     return no_error; 
 }
