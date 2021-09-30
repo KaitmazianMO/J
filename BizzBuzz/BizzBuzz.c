@@ -14,6 +14,7 @@
 void buzz_buzz_loop (File *input, File *output);
 void print_spaces (File *intput, File *output);
 off_t bizz_buzz_token_loop (File *file, bool *div_3, bool *div_5, bool *is_num);
+File file_ctor_handeled (const char *path, int mode);
 int to_num (char);
 
 int main(int argc, char **argv) 
@@ -25,18 +26,8 @@ int main(int argc, char **argv)
         return 1;
     }
     
-    File input;
-    File output;
-    if (! f_ctor (&input, argv[1],  O_RDONLY))
-    {
-        fprintf (stderr, "Error: can't open \'%s\'\n", argv[1]);
-        return 1;
-    }
-    if (! f_ctor (&output, argv[2], O_WRONLY | O_CREAT | O_TRUNC))
-    {
-        fprintf (stderr, "Error: can't open \'%s\'\n", argv[2]);
-        return 1;
-    }
+    File input  = file_ctor_handeled (argv[1], O_RDONLY);
+    File output = file_ctor_handeled (argv[2], O_WRONLY | O_CREAT | O_TRUNC);
 
     buzz_buzz_loop (&input, &output);
 
@@ -124,6 +115,25 @@ off_t bizz_buzz_token_loop (File *file, bool *div_3, bool *div_5, bool *is_num)
         *div_5 = true;
 
     return file->current_position - old_pos;
+}
+
+File file_ctor_handeled (const char *path, int mode)
+{
+    assert (path);
+
+    File file;
+    if (! f_ctor (&file, path,  mode))
+    {
+        fprintf (stderr, "Error: can't open \'%s\'\n", path);
+        exit (1);
+    }
+    if (is_common_file (&file) == false)
+    {
+        fprintf (stderr, "Error: %s is not a regular file.\n", path);
+        exit (1);
+    }  
+
+    return file;
 }
 
 void print_spaces (File *intput, File *output)

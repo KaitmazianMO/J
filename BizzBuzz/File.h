@@ -21,5 +21,6 @@ extern bool f_write_str (File *file, const char *str);
 extern void f_verify (File *file);
 extern void f_dtor (File *file);
 extern bool f_eof (File *file);
+extern int is_common_file (File *file);
 
 #endif 

@@ -148,3 +148,16 @@ static off_t file_size (int fd)
 
     return st.st_size;
 }
+
+int is_common_file (File *file)
+{
+    assert (file);
+
+    struct stat st = {};
+    if (fstat (file->handle, &st) == -1)
+    {
+        return -1;
+    }   
+
+    return S_ISREG (st.st_mode);
+}
