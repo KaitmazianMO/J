@@ -21,9 +21,14 @@ int main(int argc, char **argv)
 {
     if (argc < 3)
     {
-        fprintf (stderr, "Format error!\n"
-        "Usage: %s <input-file-name> <output-file-name>\n", argv[0]);
+        fprintf (stderr, "Usage: %s <input-file-name> <output-file-name>\n", argv[0]);
         return 1;
+    }
+
+    if (strcmp (argv[1], argv[2]) == 0)
+    {
+        fprintf (stderr, "%s and %s are the same file\n", argv[1], argv[2]);
+        return 1;    
     }
     
     File input  = file_ctor_handeled (argv[1], O_RDONLY);
@@ -46,9 +51,18 @@ void buzz_buzz_loop (File *input, File *output)
     bool has_divisibility_by_3 = false;
     bool has_divisibility_by_5 = false;
     bool is_number             = false;
+    char curr_ch = 0;
     while (!f_eof (input))
     {
-        print_spaces (input, output);   
+        if ((curr_ch = f_getchar (input)) == '\0') 
+            break;
+        else if (isspace (curr_ch))
+        {
+            f_putchar (output, curr_ch);  
+            continue;
+        }
+        else 
+            f_move (input, -1);
 
         tok_offset = bizz_buzz_token_loop (input, &has_divisibility_by_3, &has_divisibility_by_5, &is_number);
 
@@ -58,16 +72,17 @@ void buzz_buzz_loop (File *input, File *output)
             {
                 if (has_divisibility_by_3) f_write_str (output, "Bizz");
                 if (has_divisibility_by_5) f_write_str (output, "Buzz");
+                //f_putchar (output, ' ');                
             }
             else 
             {
                 f_move (input, -tok_offset);
-                for (char curr_ch = f_getchar (input); (!isspace (curr_ch)) && curr_ch; curr_ch = f_getchar (input))
+                for (curr_ch = f_getchar (input); (!isspace (curr_ch)) && curr_ch; curr_ch = f_getchar (input))
                 {
                     f_putchar (output, curr_ch); 
                 }
+                if (isspace (curr_ch)) f_move (input, -1);
             }
-            f_putchar (output, ' ');
         }
     } 
 }
@@ -92,7 +107,7 @@ off_t bizz_buzz_token_loop (File *file, bool *div_3, bool *div_5, bool *is_num)
         curr_ch = f_getchar (file);
     }
 
-    for (; isdigit (curr_ch) && ! f_eof (file); 
+    for (; isdigit (curr_ch); 
         prev_ch = curr_ch, 
         curr_ch = f_getchar (file))
     {
@@ -102,7 +117,7 @@ off_t bizz_buzz_token_loop (File *file, bool *div_3, bool *div_5, bool *is_num)
 
     bool is_inteter = true;
     if (curr_ch == '.')
-        for (curr_ch = f_getchar (file); isdigit (curr_ch) && ! f_eof (file);
+        for (curr_ch = f_getchar (file); isdigit (curr_ch) && is_inteter;
              prev_ch = curr_ch, curr_ch = f_getchar (file))
             if (curr_ch != '0')
                 is_inteter = false;
@@ -114,6 +129,7 @@ off_t bizz_buzz_token_loop (File *file, bool *div_3, bool *div_5, bool *is_num)
     if (is_inteter && (prev_ch == '5' || prev_ch == '0')) 
         *div_5 = true;
 
+    if (!f_eof (file)) f_move (file, -1);
     return file->current_position - old_pos;
 }
 

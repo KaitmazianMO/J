@@ -57,8 +57,4 @@ int main (int argc, char *argv[])
     }
 
     return errno;
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> e183a3dd4db4dfcf28fac164715f962c18471a0e
