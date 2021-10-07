@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
-//#include <io.h>
 #include <errno.h>
 
 #include "File.h"
@@ -66,13 +65,12 @@ void buzz_buzz_loop (File *input, File *output)
 
         tok_offset = bizz_buzz_token_loop (input, &has_divisibility_by_3, &has_divisibility_by_5, &is_number);
 
-        if (tok_offset > 0)
+        if (tok_offset >= 0)
         {
             if (is_number && (has_divisibility_by_3 || has_divisibility_by_5))
             {
                 if (has_divisibility_by_3) f_write_str (output, "Bizz");
-                if (has_divisibility_by_5) f_write_str (output, "Buzz");
-                //f_putchar (output, ' ');                
+                if (has_divisibility_by_5) f_write_str (output, "Buzz");               
             }
             else 
             {
@@ -107,6 +105,7 @@ off_t bizz_buzz_token_loop (File *file, bool *div_3, bool *div_5, bool *is_num)
         curr_ch = f_getchar (file);
     }
 
+    const char first_ch = curr_ch;
     for (; isdigit (curr_ch); 
         prev_ch = curr_ch, 
         curr_ch = f_getchar (file))
@@ -114,6 +113,8 @@ off_t bizz_buzz_token_loop (File *file, bool *div_3, bool *div_5, bool *is_num)
         mod_3_sum += to_num (curr_ch);
         mod_3_sum %= 3;
     }
+
+    if (file->current_position - old_pos > 1 && first_ch == '0') return file->current_position - old_pos;
 
     bool is_inteter = true;
     if (curr_ch == '.')

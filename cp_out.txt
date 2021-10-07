@@ -1,0 +1,13 @@
+total 76
+drwxr-xr-x 4 maks maks  4096 Oct  1 10:51 .
+drwxr-xr-x 5 maks maks  4096 Sep 30 23:08 ..
+drwxr-xr-x 8 maks maks  4096 Sep 30 23:05 .git
+-rw-r--r-- 1 maks maks    17 Sep 30 23:05 .gitignore
+drwxr-xr-x 2 maks maks  4096 Oct  1 09:17 BizzBuzz
+-rwxr-xr-x 1 maks maks 16880 Oct  1 10:51 a.out
+-rwxr-xr-x 1 maks maks 17112 Sep 30 23:05 cp
+-rw-r--r-- 1 maks maks  1301 Sep 30 23:05 cp.c
+-rwxr----- 1 maks maks     0 Oct  1 10:51 out.txt
+--wx--S--- 1 maks maks   594 Oct  1 10:45 out2.txt
+-rw-r--r-- 1 maks maks   208 Oct  1 09:30 proc.c
+-rw-r--r-- 1 maks maks   493 Oct  1 10:51 strelochka.c
