@@ -85,16 +85,16 @@ void buzz_buzz_loop (File *input, File *output)
     } 
 }
 
-off_t bizz_buzz_token_loop (File *file, bool *div_3, bool *div_5, bool *is_num)
+off_t bizz_buzz_token_loop (File *file, bool *div_3, bool *div_5, bool *is_int)
 {
     assert (div_3);
     assert (div_5);
-    assert (is_num);
+    assert (is_int);
     f_verify (file);
 
     *div_3  = false;
     *div_5  = false;
-    *is_num = false;
+    *is_int = true;
     const off_t old_pos = file->current_position;
     int mod_3_sum = 0;
     char prev_ch = '\0';
@@ -114,21 +114,24 @@ off_t bizz_buzz_token_loop (File *file, bool *div_3, bool *div_5, bool *is_num)
         mod_3_sum %= 3;
     }
 
-    if (file->current_position - old_pos > 1 && first_ch == '0') return file->current_position - old_pos;
+    if (*is_int && mod_3_sum == 0) 
+        *div_3 = true;
+    if (*is_int && (prev_ch == '5' || prev_ch == '0')) 
+        *div_5 = true;    
 
-    bool is_inteter = true;
+    if (!isspace (curr_ch) && curr_ch != '.') *is_int = false;
+    if (file->current_position - old_pos > 1 && first_ch == '0') 
+    {
+        *is_int = false;
+        return file->current_position - old_pos;
+    }
     if (curr_ch == '.')
-        for (curr_ch = f_getchar (file); isdigit (curr_ch) && is_inteter;
+        for (curr_ch = f_getchar (file); isdigit (curr_ch) && *is_int;
              prev_ch = curr_ch, curr_ch = f_getchar (file))
             if (curr_ch != '0')
-                is_inteter = false;
+                *is_int = false;
 
-    if (isdigit (prev_ch) && (isspace (curr_ch) || curr_ch == '\0')) *is_num = true;
-
-    if (is_inteter && mod_3_sum == 0) 
-        *div_3 = true;
-    if (is_inteter && (prev_ch == '5' || prev_ch == '0')) 
-        *div_5 = true;
+    if (isdigit (prev_ch) && (isspace (curr_ch) || curr_ch == '\0')) *is_int = true;
 
     if (!f_eof (file)) f_move (file, -1);
     return file->current_position - old_pos;
