@@ -1,90 +1,57 @@
-#define _CRT_SECURE_NO_WARNINGS
-#include <string.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
+#include <sys/stat.h>
+#include "parser.h"
 
-typedef struct {
-    char **argv;
-    int argc;
-} Command;
+long file_size (FILE *file) {
+    if (!file) return -1;
 
-typedef struct {
-    Command *cmds;
-    int ncmds;
-} Parser;
-
-static int count_words (const char *str);
-static int count_char (const char *str, char ch);
-
-static Command parse_command(const char *cmdstr);
-
-int parse (Parser *parser, char *line) {
-    if (!(parser && line)) return -1;
-    parser->ncmds = count_char (line, '|') + 1;
-    parser->cmds = calloc (parser->ncmds, sizeof (parser->cmds[0]));
-    if (!parser->cmds) return -1;
-    
-    line = strtok (line , "|");    
-    for (int i = 0; i < parser->ncmds; ++i, line = strtok (NULL, "|")) {
-        parser->cmds[i] = parse_command (line);
-        if (parser->cmds[i].argv == NULL) {
-            free (parser->cmds);
-            return -1;
-        }
+    struct stat st = {};
+    if (fstat (fileno (file), &st) == -1) {
+        return -1;
     }
-    
-    return 0;
+
+    return st.st_size;
 }
 
-Command parse_command(const char *cmdstr) {
-    Command cmd = {};
-    cmd.argc = count_words (cmdstr);
-    cmd.argv = calloc (cmd.argc, sizeof (cmd.argv[0]));
-    if (cmd.argv) {
-        for (int i = 0; i < cmd.argc; ++i) {
-            while (isspace (*cmdstr)) cmdstr++;
-            if (sscanf (cmdstr, "%ms", cmd.argv + i) > 0) {
-                cmdstr += strlen (cmd.argv[i]);
-            } else {
-                for (int j = 0; j < i; ++j) {
-                    free (cmd.argv[i]);
-                }
-                free (cmd.argv);
-                cmd.argv = NULL;
-                break;
-            }
+char *read_file (FILE *file) {
+    if (!file) return NULL;
+
+    const long fsize = file_size (file);
+    if (fsize <= 0) {
+        return NULL;
+    }
+
+    char *buff = (char *)calloc (fsize + 1, sizeof (char));
+    if (buff) {
+        buff[fsize] = '\0';
+        if (fread (buff, sizeof(char), fsize, file) != fsize) {
+            free (buff);
+            buff = NULL;
         }
     }
 
-    return cmd;
+    return buff;
 }
 
-static int count_words(const char *str) {
-    int count = isspace(str[0]) ? 0 : 1;
-    for (int i = 0; str[i+1]; ++i) {
-           if (isspace(str[i]) && !isspace(str[i+1])) {
-            ++count;
-        }
-    }
-    return count;
-}
 
-int count_char (const char *str, char ch) {
-    const size_t len = strlen (str); 
-    int count = 0;
-    for (size_t i = 0; i < len; ++i) {
-        if (str[i] == ch) {
-            ++count; 
-        }
-    }
-
-    return count;
-}
-
-int main() {
+int main(int argc, char *argv[]) {
     Parser parser = {};
-    char command_line[] = " \t ls -la //|\t grep bin | test --flag tou\tfag xd ";
+    FILE *cmd_file = fopen (argv[1], "rb");
+    if (!cmd_file) {
+        printf ("Can't open a file %s\n", argv[1]);
+        return 109;
+    }
+
+    char *command_line = read_file (cmd_file);
+    if (!command_line) {
+        printf ("File reading failed\n");
+        fclose (cmd_file);
+        return 202;
+    }
+    printf ("read %s\n", command_line);
     
     if (parse (&parser, command_line) == 0) {
         for (int i = 0; i < parser.ncmds; ++i) {
@@ -96,6 +63,41 @@ int main() {
     } else {
         printf ("parse failed\n");
     }
+
+    //for (size_t i = 0; i < nproc - 1; ++i) {
+    //switch (fork()) {
+    //    case -1: {
+    //        fatal ("fork failed");
+    //    }
+    //    case 0: { /* child */
+    //        ERROR_HANDLING_CALL (close (pipeline1[PIPE_READ]));
+    //        ERROR_HANDLING_CALL (dup2 (pipeline1[PIPE_WRITE], STDOUT_FILENO));
+    //        ERROR_HANDLING_CALL (execvp (processes[i][0], processes[i]));
+    //        //ERROR_HANDLING_CALL (execlp ("ls", "ls", "-la", "/", NULL));
+    //    }
+    //    default: { /* parent */
+    //        ERROR_HANDLING_CALL (wait (&ret_code));
+    //        break;
+    //    }
+    //}
+    //switch (fork()) {
+    //    case -1: {
+    //        fatal ("fork failed");
+    //    }
+    //    case 0: { /* child */
+    //        ERROR_HANDLING_CALL (close (pipeline1[PIPE_WRITE]));
+    //        ERROR_HANDLING_CALL (dup2 (pipeline1[PIPE_READ], STDIN_FILENO));
+    //        //ERROR_HANDLING_CALL (close (pipeline1[PIPE_READ]));
+    //        //ERROR_HANDLING_CALL (dup2 (pipeline2[PIPE_WRITE], STDOUT_FILENO));
+    //        ERROR_HANDLING_CALL (execvp (processes[i + 1][0], processes[i + 1]));
+    //    }
+    //    default: { /* parent */
+    //        ERROR_HANDLING_CALL (close (pipeline1[PIPE_READ]));
+    //        ERROR_HANDLING_CALL (close (pipeline1[PIPE_WRITE]));
+    //        ERROR_HANDLING_CALL (wait (&ret_code));
+    //        break;
+    //    }        
+    //}    
 
     return 0;
 }

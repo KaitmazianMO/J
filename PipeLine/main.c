@@ -24,7 +24,7 @@ int main (int argc, char *argv[]) {
         return 9;
     }
 
-    FILE *cmd_file = fopen (argv[1], "wb");
+    FILE *cmd_file = fopen (argv[1], "rb");
     if (!cmd_file) {
         printf ("Can't open a file %s\n", argv[1]);
         return 109;
@@ -33,8 +33,10 @@ int main (int argc, char *argv[]) {
     char *command_line = read_file (cmd_file);
     if (!command_line) {
         printf ("File reading failed\n");
+        fclose (cmd_file);
         return 202;
     }
+    printf ("read %s\n", command_line);
     
     Parser parser = {};
     ERROR_HANDLING_CALL (parse (&parser, command_line));
@@ -99,11 +101,13 @@ char *read_file (FILE *file) {
     if (!file) return NULL;
 
     const long fsize = file_size (file);
-    if (fsize <= 0)
+    if (fsize <= 0) {
         return NULL;
+    }
 
-    char *buff = (char *)calloc (fsize, sizeof (char));
+    char *buff = (char *)calloc (fsize + 1, sizeof (char));
     if (buff) {
+        buff[fsize] = '\0';
         if (fread (buff, sizeof(char), fsize, file) != fsize) {
             free (buff);
             buff = NULL;

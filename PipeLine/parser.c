@@ -15,8 +15,9 @@ int parse (Parser *parser, char *line) {
     parser->cmds = calloc (parser->ncmds, sizeof (parser->cmds[0]));
     if (!parser->cmds) return -1;
     
-    line = strtok (line , "|");    
+    line = strtok (line , "|");   
     for (int i = 0; i < parser->ncmds; ++i, line = strtok (NULL, "|")) {
+        fprintf (stderr, "strtok = %s\n", line);
         parser->cmds[i] = parse_command (line);
         if (parser->cmds[i].argv == NULL) {
             free (parser->cmds);
@@ -28,8 +29,13 @@ int parse (Parser *parser, char *line) {
 }
 
 Command parse_command(const char *cmdstr) {
-    Command cmd = {};
+    Command cmd = { .argv = NULL, .argc = 0};
+    if (*cmdstr == '\0') {
+        return cmd;
+    }
     cmd.argc = count_words (cmdstr);
+    fprintf (stderr, "cmdstr = %s\n", cmdstr);
+    fprintf (stderr, "count words = %d\n", cmd.argc);
     cmd.argv = calloc (cmd.argc, sizeof (cmd.argv[0]));
     if (cmd.argv) {
         for (int i = 0; i < cmd.argc; ++i) {
