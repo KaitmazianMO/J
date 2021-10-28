@@ -39,7 +39,6 @@ int main (int argc, char *argv[]) {
     printf ("read %s\n", command_line);
     
     Parser parser = {};
-    ERROR_HANDLING_CALL (parse (&parser, command_line));
 
     if (parse (&parser, command_line) == 0) {
         for (int i = 0; i < parser.ncmds; ++i) {

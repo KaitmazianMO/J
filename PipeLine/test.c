@@ -5,40 +5,23 @@
 #include <sys/stat.h>
 #include "parser.h"
 
-long file_size (FILE *file) {
-    if (!file) return -1;
+long file_size (FILE *file);
+char *read_file (FILE *file);
 
-    struct stat st = {};
-    if (fstat (fileno (file), &st) == -1) {
-        return -1;
+
+int fatal (const char *msg);
+#define ERROR_HANDLING_CALL( func_call )    \
+    if (func_call == -1) { \
+        fatal (#func_call); \
     }
-
-    return st.st_size;
-}
-
-char *read_file (FILE *file) {
-    if (!file) return NULL;
-
-    const long fsize = file_size (file);
-    if (fsize <= 0) {
-        return NULL;
-    }
-
-    char *buff = (char *)calloc (fsize + 1, sizeof (char));
-    if (buff) {
-        buff[fsize] = '\0';
-        if (fread (buff, sizeof(char), fsize, file) != fsize) {
-            free (buff);
-            buff = NULL;
-        }
-    }
-
-    return buff;
-}
 
 
 int main(int argc, char *argv[]) {
-    Parser parser = {};
+    if (argc != 2) {
+        printf ("Usage: %s <file>\n", argv[0]);
+        return 9;
+    }
+
     FILE *cmd_file = fopen (argv[1], "rb");
     if (!cmd_file) {
         printf ("Can't open a file %s\n", argv[1]);
@@ -53,6 +36,7 @@ int main(int argc, char *argv[]) {
     }
     printf ("read %s\n", command_line);
     
+    Parser parser = {};
     if (parse (&parser, command_line) == 0) {
         for (int i = 0; i < parser.ncmds; ++i) {
             for (int j = 0; j < parser.cmds[i].argc; ++j) {
@@ -100,4 +84,40 @@ int main(int argc, char *argv[]) {
     //}    
 
     return 0;
+}
+
+long file_size (FILE *file) {
+    if (!file) return -1;
+
+    struct stat st = {};
+    if (fstat (fileno (file), &st) == -1) {
+        return -1;
+    }
+
+    return st.st_size;
+}
+
+char *read_file (FILE *file) {
+    if (!file) return NULL;
+
+    const long fsize = file_size (file);
+    if (fsize <= 0) {
+        return NULL;
+    }
+
+    char *buff = (char *)calloc (fsize + 1, sizeof (char));
+    if (buff) {
+        buff[fsize] = '\0';
+        if (fread (buff, sizeof(char), fsize, file) != fsize) {
+            free (buff);
+            buff = NULL;
+        }
+    }
+
+    return buff;
+}
+
+int fatal (const char *msg) {
+    fprintf (stderr, "FATAL: %s failed\n", msg);
+    exit (1);
 }
