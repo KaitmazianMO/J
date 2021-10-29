@@ -16,7 +16,13 @@ int fatal (const char *msg);
         fatal (#func_call); \
     }
 
-
+#define ERROR_HANDLING_CALL_WIHT_FREE(func_call)   \
+    if (func_call == -1) { \
+        free_parser (&parser);  \
+        free (command_line);    \
+        free (pipes);   \
+        fatal (#func_call); \
+    }
 #define PIPE_READ  (0)
 #define PIPE_WRITE (1)
 
@@ -42,48 +48,51 @@ int main (int argc, char *argv[]) {
     Parser parser = {};
 
     if (parse (&parser, command_line) == 0) {
-        int *pipes = calloc ((parser.ncmds - 1)*2, sizeof (pipes[0]));
+        int *pipes = calloc ((parser.ncmds)*2, sizeof (pipes[0]));
         if (!pipes) {
-            printf ("File reading failed\n");
             free (command_line);
-            return 258;
+            free_parser (&parser);
+            fatal ("File reading failed\n");
         }
 
         for (int i = 0; i < parser.ncmds - 1; ++i) {
-            ERROR_HANDLING_CALL (pipe (pipes + i*2));
+            ERROR_HANDLING_CALL_WIHT_FREE (pipe (pipes + i*2));
         }
 
         for (size_t i = 0; i < parser.ncmds; ++i) {
             switch (fork()) {
                 case -1: {
+                    free_parser (&parser);  
+                    free (command_line);    
+                    free (pipes);                      
                     fatal ("fork failed");
                 }
                 case 0: { /* child */                
                     if (i != 0) {  
-                        ERROR_HANDLING_CALL (dup2 (pipes[2*(i-1) + PIPE_READ], STDIN_FILENO));
+                        ERROR_HANDLING_CALL_WIHT_FREE (dup2 (pipes[2*(i-1) + PIPE_READ], STDIN_FILENO));
                     }
                     if (i != parser.ncmds - 1) {
-                        ERROR_HANDLING_CALL (dup2 (pipes[2*i + PIPE_WRITE], STDOUT_FILENO))
+                        ERROR_HANDLING_CALL_WIHT_FREE (dup2 (pipes[2*i + PIPE_WRITE], STDOUT_FILENO))
                     }
                     for (int j = 2*i; j < (parser.ncmds - 1)*2; ++j) {
-                        ERROR_HANDLING_CALL (close (pipes[j]));
+                        ERROR_HANDLING_CALL_WIHT_FREE (close (pipes[j]));
                     }
-                    ERROR_HANDLING_CALL (execvp (parser.cmds[i].argv[0], parser.cmds[i].argv));
+                    ERROR_HANDLING_CALL_WIHT_FREE (execvp (parser.cmds[i].argv[0], parser.cmds[i].argv));
                 }
                 default: { /* parent */
-                    ERROR_HANDLING_CALL (close (pipes[2*(i) + 1]));
-                    ERROR_HANDLING_CALL (wait (NULL));
+                    ERROR_HANDLING_CALL_WIHT_FREE (close (pipes[2*(i) + 1]));
                     break;
                 }
             }
         }  
+        ERROR_HANDLING_CALL_WIHT_FREE (wait (NULL));        
         for (int i = 0; i < parser.ncmds - 1; ++i) {
             ERROR_HANDLING_CALL (close (pipes[2*(i)]));
         }
         free_parser (&parser);
         free (pipes);
     } else {
-        printf ("parsing failed\n");
+        fatal ("parsing failed\n");
     }
 
     free (command_line);

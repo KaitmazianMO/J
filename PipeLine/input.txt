@@ -1,1 +1,1 @@
-ls -la / | cut -c9- | grep  bin
+ls -la / | grep b -A 5 -B 6 | grep s
