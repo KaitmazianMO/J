@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <errno.h>
+#include <string.h>
 #include "parser.h"
 
 long file_size (FILE *file);
@@ -31,68 +33,63 @@ int main (int argc, char *argv[]) {
     }
 
     char *command_line = read_file (cmd_file);
+    fclose (cmd_file);    
     if (!command_line) {
         printf ("File reading failed\n");
-        fclose (cmd_file);
         return 202;
     }
-    printf ("read %s\n", command_line);
     
     Parser parser = {};
 
     if (parse (&parser, command_line) == 0) {
-        for (int i = 0; i < parser.ncmds; ++i) {
-            for (int j = 0; j < parser.cmds[i].argc; ++j) {
-                printf ("\'%s\' ", parser.cmds[i].argv[j]);
-            }
-            printf ("\n");
+        int *pipes = calloc ((parser.ncmds - 1)*2, sizeof (pipes[0]));
+        if (!pipes) {
+            printf ("File reading failed\n");
+            free (command_line);
+            fclose (cmd_file);
+            return 258;
         }
+
+        for (int i = 0; i < parser.ncmds - 1; ++i) {
+            ERROR_HANDLING_CALL (pipe (pipes + i*2));
+        }
+
+        int pipe_read       = PIPE_READ;
+        int pipe_write      = PIPE_WRITE;
+        for (size_t i = 0; i < parser.ncmds - 1; 
+            ++i,
+            pipe_read       += 2,
+            pipe_write      += 2) {
+            switch (fork()) {
+                case -1: {
+                    fatal ("fork failed");
+                }
+                case 0: { /* child */
+                    ERROR_HANDLING_CALL (close (pipes[pipe_read]));
+                    ERROR_HANDLING_CALL (dup2 (pipes[pipe_write], STDOUT_FILENO));
+                    ERROR_HANDLING_CALL (execvp (parser.cmds[i].argv[0], parser.cmds[i].argv));
+                    //ERROR_HANDLING_CALL (execlp ("ls", "ls", "-la", "/", NULL));
+                }
+                default: { /* parent */
+                    ERROR_HANDLING_CALL (wait (NULL));
+                    break;
+                }
+            }
+
+        }
+        free (pipes);
     } else {
-        printf ("parse failed\n");
+        printf ("parsing failed\n");
     }
 
+    free (command_line);
 
-    //for (size_t i = 0; i < nproc - 1; ++i) {
-    //    switch (fork()) {
-    //        case -1: {
-    //            fatal ("fork failed");
-    //        }
-    //        case 0: { /* child */
-    //            ERROR_HANDLING_CALL (close (pipeline1[PIPE_READ]));
-    //            ERROR_HANDLING_CALL (dup2 (pipeline1[PIPE_WRITE], STDOUT_FILENO));
-    //            ERROR_HANDLING_CALL (execvp (processes[i][0], processes[i]));
-    //            //ERROR_HANDLING_CALL (execlp ("ls", "ls", "-la", "/", NULL));
-    //        }
-    //        default: { /* parent */
-    //            ERROR_HANDLING_CALL (wait (&ret_code));
-    //            break;
-    //        }
-    //    }
-//
-    //    switch (fork()) {
-    //        case -1: {
-    //            fatal ("fork failed");
-    //        }
-    //        case 0: { /* child */
-    //            ERROR_HANDLING_CALL (close (pipeline1[PIPE_WRITE]));
-    //            ERROR_HANDLING_CALL (dup2 (pipeline1[PIPE_READ], STDIN_FILENO));
-    //            //ERROR_HANDLING_CALL (close (pipeline1[PIPE_READ]));
-    //            //ERROR_HANDLING_CALL (dup2 (pipeline2[PIPE_WRITE], STDOUT_FILENO));
-    //            ERROR_HANDLING_CALL (execvp (processes[i + 1][0], processes[i + 1]));
-    //        }
-    //        default: { /* parent */
-    //            ERROR_HANDLING_CALL (close (pipeline1[PIPE_READ]));
-    //            ERROR_HANDLING_CALL (close (pipeline1[PIPE_WRITE]));
-    //            ERROR_HANDLING_CALL (wait (&ret_code));
-    //            break;
-    //        }        
-    //    }    
-    //}
     return 0;
 }
 
 int fatal (const char *msg) {
     fprintf (stderr, "FATAL: %s failed\n", msg);
+    fprintf (stderr, "%s\n", strerror (errno));    
     exit (1);
 }
 
