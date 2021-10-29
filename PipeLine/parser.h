@@ -9,5 +9,6 @@ typedef struct {
 } Parser;
 
 extern int parse (Parser *parser, char *line);
+extern void free_parser (Parser *parser);
 
 #endif // PARSER_H_INCLUDED

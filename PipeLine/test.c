@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <string.h>
+#include <errno.h>
 #include "parser.h"
 
 long file_size (FILE *file);
@@ -16,37 +18,47 @@ int fatal (const char *msg);
     }
 
 
-int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        printf ("Usage: %s <file>\n", argv[0]);
-        return 9;
-    }
+int main() {
 
-    FILE *cmd_file = fopen (argv[1], "rb");
-    if (!cmd_file) {
-        printf ("Can't open a file %s\n", argv[1]);
-        return 109;
-    }
-
-    char *command_line = read_file (cmd_file);
-    if (!command_line) {
-        printf ("File reading failed\n");
-        fclose (cmd_file);
-        return 202;
-    }
-    printf ("read %s\n", command_line);
+    char his[] = "history";
+    char *argv[2];
+    argv[0] = his;
+    argv[1] = NULL;
     
-    Parser parser = {};
-    if (parse (&parser, command_line) == 0) {
-        for (int i = 0; i < parser.ncmds; ++i) {
-            for (int j = 0; j < parser.cmds[i].argc; ++j) {
-                printf ("\'%s\' ", parser.cmds[i].argv[j]);
-            }
-            printf ("\n");
-        }
-    } else {
-        printf ("parse failed\n");
-    }
+    execvp(argv[0], argv);
+    printf ("not history\n");
+    printf ("error: %s\n", strerror (errno));
+
+    //if (argc != 2) {
+    //    printf ("Usage: %s <file>\n", argv[0]);
+    //    return 9;
+    //}
+//
+    //FILE *cmd_file = fopen (argv[1], "rb");
+    //if (!cmd_file) {
+    //    printf ("Can't open a file %s\n", argv[1]);
+    //    return 109;
+    //}
+//
+    //char *command_line = read_file (cmd_file);
+    //if (!command_line) {
+    //    printf ("File reading failed\n");
+    //    fclose (cmd_file);
+    //    return 202;
+    //}
+    //printf ("read %s\n", command_line);
+    //
+    //Parser parser = {};
+    //if (parse (&parser, command_line) == 0) {
+    //    for (int i = 0; i < parser.ncmds; ++i) {
+    //        for (int j = 0; j < parser.cmds[i].argc; ++j) {
+    //            printf ("\'%s\' ", parser.cmds[i].argv[j]);
+    //        }
+    //        printf ("\n");
+    //    }
+    //} else {
+    //    printf ("parse failed\n");
+    //}
 
     //for (size_t i = 0; i < nproc - 1; ++i) {
     //switch (fork()) {

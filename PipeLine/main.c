@@ -46,7 +46,6 @@ int main (int argc, char *argv[]) {
         if (!pipes) {
             printf ("File reading failed\n");
             free (command_line);
-            fclose (cmd_file);
             return 258;
         }
 
@@ -54,29 +53,34 @@ int main (int argc, char *argv[]) {
             ERROR_HANDLING_CALL (pipe (pipes + i*2));
         }
 
-        int pipe_read       = PIPE_READ;
-        int pipe_write      = PIPE_WRITE;
-        for (size_t i = 0; i < parser.ncmds - 1; 
-            ++i,
-            pipe_read       += 2,
-            pipe_write      += 2) {
+        for (size_t i = 0; i < parser.ncmds; ++i) {
             switch (fork()) {
                 case -1: {
                     fatal ("fork failed");
                 }
-                case 0: { /* child */
-                    ERROR_HANDLING_CALL (close (pipes[pipe_read]));
-                    ERROR_HANDLING_CALL (dup2 (pipes[pipe_write], STDOUT_FILENO));
+                case 0: { /* child */                
+                    if (i != 0) {  
+                        ERROR_HANDLING_CALL (dup2 (pipes[2*(i-1) + PIPE_READ], STDIN_FILENO));
+                    }
+                    if (i != parser.ncmds - 1) {
+                        ERROR_HANDLING_CALL (dup2 (pipes[2*i + PIPE_WRITE], STDOUT_FILENO))
+                    }
+                    for (int j = 2*i; j < (parser.ncmds - 1)*2; ++j) {
+                        ERROR_HANDLING_CALL (close (pipes[j]));
+                    }
                     ERROR_HANDLING_CALL (execvp (parser.cmds[i].argv[0], parser.cmds[i].argv));
-                    //ERROR_HANDLING_CALL (execlp ("ls", "ls", "-la", "/", NULL));
                 }
                 default: { /* parent */
+                    ERROR_HANDLING_CALL (close (pipes[2*(i) + 1]));
                     ERROR_HANDLING_CALL (wait (NULL));
                     break;
                 }
             }
-
+        }  
+        for (int i = 0; i < parser.ncmds - 1; ++i) {
+            ERROR_HANDLING_CALL (close (pipes[2*(i)]));
         }
+        free_parser (&parser);
         free (pipes);
     } else {
         printf ("parsing failed\n");

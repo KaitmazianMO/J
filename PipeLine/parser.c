@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <stdlib.h>
 
 static int count_words (const char *str);
 static int count_char (const char *str, char ch);
@@ -55,6 +56,14 @@ Command parse_command(const char *cmdstr) {
     }
 
     return cmd;
+}
+
+void free_parser (Parser *parser) {
+    for (int i = 0; i < parser->ncmds; ++i) {
+        free_cmd (&parser->cmds[i]);
+    }
+
+    free (parser->cmds);
 }
 
 static int count_words(const char *str) {

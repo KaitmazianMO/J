@@ -6,4 +6,6 @@ typedef struct {
     int argc;
 } Command;
 
+extern void free_cmd (Command *cmd);
+
 #endif

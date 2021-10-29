@@ -1,1 +1,1 @@
-ls -la / | grep bin
+ls -la / | cut -c9- | grep  bin
