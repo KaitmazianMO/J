@@ -33,11 +33,6 @@ int main (int argc, const char *argv[]) {
     }
 
     while (1) {
-        if (nbit == 8) {
-            write (fd, &byte, 1);
-            nbit = 0;
-            byte = 0;
-        }
         sigsuspend(&set);
     }
 }
@@ -79,18 +74,30 @@ void exit_successfully (int signo) {
 
 void one (int signo) {
     byte |= (0x1 << nbit++);
+    if (nbit == 8) {
+        write (fd, &byte, 1);
+        nbit = 0;
+        byte = 0;
+    }
     kill (send_pid, SIGUSR1);
 }
 
 // SIGUSR2
 void zero (int signo) { 
     byte &= ~(0x1 << nbit++);
-    kill(send_pid, SIGUSR1);
+    if (nbit == 8) {
+        write (fd, &byte, 1);
+        nbit = 0;
+        byte = 0;
+    }
+    kill (send_pid, SIGUSR1);
 }
 
 void set_actions() {
+    sigfillset (&set);
+
     struct sigaction act_term;
-    memset(&act_term, 0, sizeof (act_term));
+    memset (&act_term, 0, sizeof (act_term));
     act_term.sa_handler = exit_successfully; 
     sigfillset (&act_term.sa_mask); 
     sigaction (SIGTERM, &act_term, NULL); 
@@ -106,4 +113,10 @@ void set_actions() {
     act_zero.sa_handler = zero;
     sigfillset (&act_zero.sa_mask);    
     sigaction (SIGUSR2, &act_zero, NULL);
+
+    sigaddset (&set, SIGUSR1);
+    sigaddset (&set, SIGUSR2);
+    sigaddset (&set, SIGTERM);
+    sigprocmask (SIG_BLOCK, &set, NULL);
+    sigemptyset (&set);
 }
