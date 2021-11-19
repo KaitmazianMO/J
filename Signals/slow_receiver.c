@@ -34,6 +34,11 @@ int main (int argc, const char *argv[]) {
 
     while (1) {
         sigsuspend(&set);
+        if (nbit == 8) {
+            write (fd, &byte, 1);
+            nbit = 0;
+            byte = 0;
+        }
     }
 }
 
@@ -62,7 +67,7 @@ void init_globals (const char *out_file) {
 
     printf ("pause:Receiver pid = %d\n", getpid());
     pause(); // please be a SIGUSR1
-    printf ("sender pid = %d\n", send_pid);
+    printf ("Sender pid = %d\n", send_pid);
 
     if (kill (send_pid, SIGUSR1) == -1)
         ERROR ("PIzda");
@@ -74,34 +79,22 @@ void exit_successfully (int signo) {
 
 void one (int signo) {
     byte |= (0x1 << nbit++);
-    if (nbit == 8) {
-        write (fd, &byte, 1);
-        nbit = 0;
-        byte = 0;
-    }
     kill (send_pid, SIGUSR1);
 }
 
 // SIGUSR2
 void zero (int signo) { 
     byte &= ~(0x1 << nbit++);
-    if (nbit == 8) {
-        write (fd, &byte, 1);
-        nbit = 0;
-        byte = 0;
-    }
     kill (send_pid, SIGUSR1);
 }
 
 void set_actions() {
-    sigfillset (&set);
-
     struct sigaction act_term;
     memset (&act_term, 0, sizeof (act_term));
     act_term.sa_handler = exit_successfully; 
     sigfillset (&act_term.sa_mask); 
-    sigaction (SIGTERM, &act_term, NULL); 
-  
+    sigaction (SIGTERM, &act_term, NULL);
+
     struct sigaction act_one;
     memset (&act_one, 0, sizeof (act_one));
     act_one.sa_handler = one;
@@ -111,12 +104,14 @@ void set_actions() {
     struct sigaction act_zero;
     memset (&act_zero, 0, sizeof (act_zero));
     act_zero.sa_handler = zero;
-    sigfillset (&act_zero.sa_mask);    
-    sigaction (SIGUSR2, &act_zero, NULL);
-
+    sigfillset (&act_zero.sa_mask);  
+    sigaction (SIGUSR2, &act_zero, NULL);  
+  
+    sigemptyset (&set);
     sigaddset (&set, SIGUSR1);
     sigaddset (&set, SIGUSR2);
     sigaddset (&set, SIGTERM);
     sigprocmask (SIG_BLOCK, &set, NULL);
+
     sigemptyset (&set);
 }

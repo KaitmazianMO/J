@@ -10,10 +10,10 @@
 
 #define ERROR( ... ) { fprintf (stderr, __VA_ARGS__ ); fprintf (stderr, "\n"); kill (rec_pid, SIGTERM); exit (-1);}
 
-sigset_t      empty_set;
 unsigned char byte = '\0';
 pid_t         rec_pid = 0;
 int           fd = -1;
+sigset_t      set;
 
 void init_globals (const char *file_name, const char *pid_str);
 void set_actions();
@@ -30,7 +30,9 @@ int main(int argc, char *argv[]) {
 
     kill (rec_pid, SIGUSR1); // start sending
 
-    pause ();
+    alarm (5);
+
+    sigsuspend (&set);
 
     int nread = 0;
     while ((nread = read (fd, &byte, 1))) {
@@ -46,7 +48,7 @@ int main(int argc, char *argv[]) {
             } else {
                 kill (rec_pid, SIGUSR2);
             }
-            sigsuspend (&empty_set);
+            sigsuspend (&set);
         }
     }
 
@@ -66,10 +68,6 @@ void init_globals (const char *file_name, const char *pid_str) {
     if (end - pid_str != strlen (pid_str) || errno != 0) {
         ERROR ("Unconvertable pid(%s)", pid_str);
     }
-
-    assert (rec_pid);
-
-    sigemptyset (&empty_set);
 }
 
 void exit_unsuccessfully (int signo) {
@@ -81,8 +79,6 @@ void empty (int signo) {
 }
 
 void set_actions() {
-    sigemptyset (&empty_set);
-
     static struct sigaction act_alarm;      
     memset(&act_alarm, 0, sizeof(act_alarm));
     act_alarm.sa_handler = exit_unsuccessfully;
@@ -98,4 +94,12 @@ void set_actions() {
     if (sigaction(SIGUSR1, &act_empty, NULL) == -1) {
         ERROR ("sigaction error");
     }
+
+    sigemptyset (&set);
+    sigaddset (&set, SIGUSR1);
+    sigaddset (&set, SIGUSR2);
+    sigaddset (&set, SIGTERM);
+    sigprocmask (SIG_BLOCK, &set, NULL);
+
+    sigemptyset (&set);
 }
