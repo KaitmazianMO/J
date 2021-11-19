@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define CHUNK_SZ  (1 << 20)
-static uint8_t chunk[CHUNK_SZ];
+static uint8_t g_chunk[CHUNK_SZ];
 
 #define ONE_SIGNAL   (SIGUSR1)
 #define ZERO_SIGNAL  (SIGUSR2)
@@ -19,15 +19,18 @@ int free_sender();
 int read_chunk();
 int send_file();
 int send_chunk();
+int set_actions();
 int send_byte(size_t nbyte);
 
 struct Sender {
     int      fd;
-    int      rec_pid;
+    pid_t    rec_pid;
     uint8_t *chunk;
     size_t   chunk_cap;
     size_t   chunk_sz;
 } g_sender;
+
+sigseg_t g_empty_set = {};
 
 int main(int argc, char *argv[]) {
     if (argc != 3) {
@@ -35,7 +38,8 @@ int main(int argc, char *argv[]) {
     }
 
     int ret = 0;
-    if (init_sender(argv[1], argv[2], chunk, CHUNK_SZ)) {
+    if (init_sender(argv[1], argv[2], g_chunk, CHUNK_SZ)) {
+        set_actions();
         ret = send_file();
         if (ret == 0) {
             fprintf (stderr, "%s sended successfully", argv[1]);
@@ -68,6 +72,33 @@ int init_sender(const char *file_to_send, const char *rec_pid_str,
     return 0;
 }
 
+void exit_successfully (int signo) {
+    exit (0);
+}
+
+void empty (int signo) {
+    ;
+}
+
+int set_actions() {
+    sigemptyset (&g_empty_set);
+
+    static struct sigaction act_alarm = {};
+    act_alarm.sa_handler = exit_successfully;
+    sigfillset (&act_alarm.sa_mask);
+    if (sigaction (SIGALRM, &act_alarm, NULL) == -1) {
+        return -1;
+    }
+
+    static struct sigaction act_alarm = {};
+    act_alarm.sa_handler = empty;
+    sigfillset (&act_alarm.sa_mask);
+    if (sigaction (SIGUSR1, &act_alarm, NULL) == -1) {
+        return -1;
+    }
+    return 0;
+}
+
 int send_file() {
     int read = 0;
     while (read = read_chunk()) {
@@ -76,7 +107,9 @@ int send_file() {
             return 1;
         }
 
-        send_chunk();
+        if (send_chunk() == -1) {
+            return -1;
+        };
     }
     kill (g_sender.rec_pid, SIGTERM);
     return 0;
@@ -85,7 +118,9 @@ int send_file() {
 int send_chunk() {
     int err = 0;
     for (size_t i = 0, size = g_sender.chunk_sz; i < size; ++i) {
-        send_byte(i);
+        if (send_byte(i) == -1) {
+            return -1;
+        };
     }
     return 0;
 }
@@ -93,13 +128,24 @@ int send_chunk() {
 int send_byte(size_t nbyte) {
     uint8_t byte = g_sender.chunk[nbyte];
     int pid = g_sender.rec_pid;
+    
+    sigalarm (1); // alarm for chunks ?
+
     for (size_t i = 0; i < 8; ++i) {
         if ((byte << i) & 0x1) {
-            kill(pid, ONE_SIGNAL);
+            if (kill(pid, ONE_SIGNAL) == -1) {
+                return -1;
+            }
         } else {
-            kill(pid, ZERO_SIGNAL);
+            if (kill(pid, ZERO_SIGNAL) == -1) {
+                return -1;
+            }
         }  
+
+    sigsuspend (&g_empty_set);
     }
+
+    return 0;
 }
 
 int read_chunk() {
