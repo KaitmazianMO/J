@@ -1,7 +1,8 @@
 #ifndef STACK_H
 #define STACK_H
 
-extern struct stack;
+#include <time.h>
+#include <sys/time.h>
 
 typedef struct stack shared_stack_t;
 
@@ -28,5 +29,12 @@ extern int push(shared_stack_t *stack, void *val);
 
 /* Pop val from stack into memory */
 extern int pop(shared_stack_t *stack, void **val);
+
+/* Control timeout on push and pop operations in case stack is full or empty.
+val == -1 Operations return immediatly, probably with errors.
+val == 0  Operations wait infinitely.
+val == 1  Operations wait timeout time.
+*/
+int set_wait(int val, struct timespec *timeout);
 
 #endif

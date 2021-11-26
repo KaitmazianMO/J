@@ -10,6 +10,7 @@
 int main() {
 
     shared_stack_t *stack = attach_stack(KEY, SIZE);
+    stack = attach_stack(KEY, SIZE);
     assert(stack);
 
     void *v = 0;

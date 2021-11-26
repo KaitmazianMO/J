@@ -31,8 +31,7 @@ typedef struct stack {
     int shmid;
 } shared_stack_t;
 
-const struct timespec timeout = {.tv_sec = 3};
-
+static struct timespec TIMEOUT = {.tv_sec = 3};
 
 static void sem_wait(int semid);
 static void sem_post(int semid);
@@ -162,7 +161,7 @@ void sem_wait(int semid) {
     sops[1].sem_num = 0;
     sops[1].sem_op = 1;
     sops[1].sem_flg = SEM_UNDO;
-    ERR(semtimedop(semid, sops, 2, &timeout) == -1);
+    ERR(semtimedop(semid, sops, 2, &TIMEOUT) == -1);
 }
 
 void sem_post(int semid) {
@@ -186,4 +185,21 @@ void error(int condition, const char *file, int line, const char *func) {
                 strerror(errno));
         exit(EXIT_FAILURE);
     }
+}
+
+int set_wait(int val, struct timespec *timeout) {
+    switch (val) {
+        case -1: {
+            TIMEOUT.tv_sec = 0;
+            TIMEOUT.tv_nsec = 0;
+        }
+        case  0: {
+            TIMEOUT.tv_sec = 0xFFFFFFFF;
+        } break;
+        case  1: {
+            assert(timeout);
+            TIMEOUT = *timeout;
+        } break;
+    }
+    return 0;
 }
