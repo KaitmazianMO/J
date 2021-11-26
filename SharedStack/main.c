@@ -5,9 +5,13 @@
 #include <unistd.h>
 
 #define KEY 0x777
-#define SIZE 0x100
+#define SIZE 10000
 
 int main() {
+    int pid = getpid();
+
+    for(int i = 0; i < 10; i++)
+        fork();
 
     shared_stack_t *stack = attach_stack(KEY, SIZE);
     stack = attach_stack(KEY, SIZE);
@@ -15,18 +19,15 @@ int main() {
 
     void *v = 0;
 
-    for (size_t i = 0; i < SIZE; ++i) {
+    for (size_t i = 0; i < 3; ++i) {
         v = (void *)i;
-        assert (push(stack, v) == 0);
     }
 
-    printf ("get_count(stack) = %d\n", get_count(stack));
-    assert(get_count(stack) == SIZE);
-
-    for (size_t i = 0; i < SIZE; ++i) {
+    for (size_t i = 0; i < 3; ++i) {
         pop(stack, &v);
-        assert(v == (void *)(SIZE - i - 1));
     }
+
+    if
 
     assert(!mark_destruct(stack));
     assert(!detach_stack(stack));
